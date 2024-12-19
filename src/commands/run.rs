@@ -85,6 +85,7 @@ enum CliLinker {
 impl RunCommand {
     /// Executes the command.
     pub fn execute(mut self) -> Result<()> {
+        let e2e_time = std::time::Instant::now();
         self.run.common.init_logging()?;
 
         let mut config = self.run.common.config(None)?;
@@ -106,10 +107,13 @@ impl RunCommand {
 
         let engine = Engine::new(&config)?;
 
+        let compile_time = std::time::Instant::now();
         // Read the wasm module binary either as `*.wat` or a raw binary.
         let main = self
             .run
             .load_module(&engine, self.module_and_args[0].as_ref())?;
+        let compile_time = compile_time.elapsed().as_nanos();
+        std::fs::write("/tmp/compile_time.txt", format!("{:?}\n", compile_time)).unwrap();
 
         // Validate coredump-on-trap argument
         if let Some(path) = &self.run.common.debug.coredump {
@@ -248,7 +252,8 @@ impl RunCommand {
                 return Err(e);
             }
         }
-
+        let e2e_time = e2e_time.elapsed().as_nanos();
+        std::fs::write("/tmp/e2e_time.txt", format!("{:?}\n", e2e_time)).unwrap();
         Ok(())
     }
 
